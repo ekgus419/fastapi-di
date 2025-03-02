@@ -18,6 +18,7 @@ fastapi-boot-rms/
 │   ├── service/                     # 비즈니스 로직 (BaseService 상속 가능)
 │   └── utils/                       # 유틸 함수 (보안, 토큰, 의존성 등)
 ├── alembic/                         # Alembic 마이그레이션
+├── http/                            # API 기능 테스트
 ├── main.py                          # FastAPI 실행 진입점
 └── requirements.txt                 # 의존성 목록
 ```
