@@ -14,8 +14,8 @@ POST http://localhost:8000/v1/users
 Content-Type: application/json
 
 {
-  "username": "ttt55hh",
-  "email": "1115hh@example.com",
+  "username": "fff",
+  "email": "fff@example.com",
   "full_name": "1New User",
   "password": "securepassword"
 }
@@ -29,5 +29,5 @@ Content-Type: application/json
 }
 
 ### 사용자 삭제
-DELETE http://localhost:8000/v1/users/43
+DELETE http://localhost:8000/v1/users/45
 Content-Type: application/json

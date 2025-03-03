@@ -1,8 +1,8 @@
 from typing import Type, TypeVar, Generic, List, Optional, Any, Dict
 from sqlalchemy.orm import Session
-from sqlalchemy import text, desc, asc, inspect
+from sqlalchemy import text, desc, asc, inspect, delete, exists
 from sqlalchemy.sql.expression import ColumnElement
-from src.entity.base_entity import Base  # ✅ SQLAlchemy Base 클래스
+from src.entity.base_entity import Base  # SQLAlchemy Base 클래스
 
 # T가 항상 SQLAlchemy의 Base를 상속하는 모델이 되도록 제한
 T = TypeVar("T", bound=Base)
@@ -21,107 +21,110 @@ class BaseRepository(Generic[T]):
         self.db = db
         self.entity = entity
 
-        # 기본 키 컬럼을 SQLAlchemy의 ColumnElement 타입으로 변환
-        primary_key_column = inspect(self.entity).primary_key[0]
-        self.primary_key: ColumnElement = getattr(self.entity, primary_key_column.name)
+        # 기본 키가 존재하는지 체크
+        primary_keys = inspect(self.entity).primary_key
+        if not primary_keys:
+            raise ValueError(f"{self.entity.__name__} 모델에 기본 키가 없습니다.")
+
+        # 기본 키 컬럼을 SQLAlchemy InstrumentedAttribute로 변환
+        # 기본 키의 이름 가져오기
+        primary_key_name = primary_keys[0].name
+        # SQLAlchemy 컬럼 객체로 변환
+        self.primary_key: ColumnElement = getattr(self.entity, primary_key_name)
 
     def find_all(
-            self,
-            page: int = 1,
-            size: int = 10,
-            sort_by: Optional[str] = None,
-            order: str = "asc"
+        self,
+        page: int = 1,
+        size: int = 10,
+        sort_by: Optional[str] = None,
+        order: str = "asc"
     ) -> List[T]:
         """
         페이징 및 정렬을 지원하는 목록 조회 메서드.
-        :param page: 페이지 번호 (1-based index)
-        :param size: 한 페이지에 가져올 데이터 개수
-        :param sort_by: 정렬할 컬럼명
-        :param order: "asc" (오름차순) 또는 "desc" (내림차순)
-        :return: 조회된 엔티티 목록
         """
         query = self.db.query(self.entity)
 
-        # 정렬 적용
+        # 정렬 컬럼 유효성 체크
         if sort_by:
-            sort_attr = getattr(self.entity, sort_by, None)
-            if sort_attr is not None:
-                query = query.order_by(desc(sort_attr)) if order.lower() == "desc" else query.order_by(asc(sort_attr))
+            entity_columns = {column.name for column in inspect(self.entity).c}
+            if sort_by not in entity_columns:
+                raise ValueError(f"정렬할 컬럼 '{sort_by}'가 존재하지 않습니다. 사용 가능한 컬럼: {entity_columns}")
 
-        # 페이징 적용
-        skip = (page - 1) * size
-        return query.offset(skip).limit(size).all()
+            sort_attr = getattr(self.entity, sort_by)
+            query = query.order_by(desc(sort_attr) if order.lower() == "desc" else asc(sort_attr))
+
+        return query.offset((page - 1) * size).limit(size).all()
 
     def find_by_id(self, entity_id: int) -> Optional[T]:
         """
         ID를 기반으로 엔티티를 조회하는 메서드.
-        :param entity_id: 조회할 엔티티의 ID
-        :return: 해당 ID의 엔티티 (없으면 None)
         """
         return self.db.query(self.entity).filter(self.primary_key == entity_id).first()
 
     def count_all(self) -> int:
         """
         전체 엔티티 개수를 반환하는 메서드.
-        :return: 엔티티 개수
         """
         return self.db.query(self.entity).count()
 
     def save(self, entity: T) -> T:
         """
         엔티티를 데이터베이스에 저장하는 메서드.
-        :param entity: 저장할 엔티티 객체
-        :return: 저장된 엔티티
         """
-        self.db.add(entity)
-        self.db.commit()
-        self.db.refresh(entity)
-        return entity
+        try:
+            self.db.add(entity)
+            self.db.commit()
+            self.db.refresh(entity)
+            return entity
+        except Exception as e:
+            self.db.rollback()
+            raise e
 
     def update(self, entity_id: int, **kwargs) -> Optional[T]:
         """
         특정 ID의 엔티티를 업데이트하는 메서드.
-        :param entity_id: 업데이트할 엔티티의 ID
-        :param kwargs: 변경할 필드 값들
-        :return: 업데이트된 엔티티 (없으면 None)
         """
         entity = self.db.query(self.entity).filter(self.primary_key == entity_id).first()
         if not entity:
             return None
-        for key, value in kwargs.items():
-            if hasattr(entity, key):
-                setattr(entity, key, value)
-        self.db.commit()
-        self.db.refresh(entity)
-        return entity
+
+        # 존재하는 필드만 업데이트
+        entity_columns = {column.name for column in inspect(self.entity).c}
+        valid_data = {key: value for key, value in kwargs.items() if key in entity_columns}
+
+        for key, value in valid_data.items():
+            setattr(entity, key, value)
+
+        try:
+            self.db.commit()
+            self.db.refresh(entity)
+            return entity
+        except Exception as e:
+            self.db.rollback()
+            raise e
 
     def delete_by_id(self, entity_id: int) -> bool:
         """
         특정 ID의 엔티티를 삭제하는 메서드.
-        :param entity_id: 삭제할 엔티티의 ID
-        :return: 삭제 성공 여부
         """
-        entity = self.db.query(self.entity).filter(self.primary_key == entity_id).first()
-        if not entity:
-            return False
-        self.db.delete(entity)
-        self.db.commit()
-        return True
+        stmt = delete(self.entity).where(self.primary_key == entity_id)
+        try:
+            result = self.db.execute(stmt)
+            self.db.commit()
+            return bool(result.rowcount)
+        except Exception as e:
+            self.db.rollback()
+            raise e
 
     def exists_by_id(self, entity_id: int) -> bool:
         """
         특정 ID의 엔티티 존재 여부를 확인하는 메서드.
-        :param entity_id: 확인할 ID
-        :return: 존재 여부 (True/False)
         """
         return self.db.query(self.entity).filter(self.primary_key == entity_id).first() is not None
 
     def find_by_native_query(self, sql: str, params: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """
         네이티브 SQL 쿼리를 실행하는 메서드.
-        :param sql: 실행할 SQL 문자열
-        :param params: 바인딩할 파라미터
-        :return: 쿼리 결과 리스트 (딕셔너리 형태)
         """
         result = self.db.execute(text(sql), params or {}).mappings().all()
         return [dict(row) for row in result]
