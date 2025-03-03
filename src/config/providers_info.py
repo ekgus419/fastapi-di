@@ -4,6 +4,7 @@ BaseRepository는 직접 인스턴스화해서 사용하지 않고,
 providers_info에 따로 등록하지 않는다.
 Providers_info에는 실제 DI 컨테이너를 통해 인스턴스를 생성할 구체적인 클래스들만 등록한다.
 """
+
 PROVIDERS_INFO = {
     "user_repository": {
         "module": "src.repository.user.user_repository",   # 모듈 경로

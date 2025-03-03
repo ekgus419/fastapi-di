@@ -1,7 +1,7 @@
 from src.domain.user_domain import UserDomain
 from src.entity.user_entity import UserEntity
 
-def entity_to_domain(user_model: UserEntity) -> UserDomain:
+def entity_to_domain(user_entity: UserEntity) -> UserDomain:
     """
     (ORM 엔티티 → 도메인 객체 변환)
     ORM Entity를 도메인 객체로 변환합니다.
@@ -10,13 +10,16 @@ def entity_to_domain(user_model: UserEntity) -> UserDomain:
     도메인 계층에서 데이터베이스 종속성을 줄이기 위해 Domain으로 변환하여 사용합니다.
     """
     return UserDomain(
-        id=user_model.id,
-        username=user_model.username,
-        email=user_model.email,
-        full_name=user_model.full_name
+        id=user_entity.id,
+        username=user_entity.username,
+        email=user_entity.email,
+        current_refresh_token=user_entity.current_refresh_token,
+        full_name=user_entity.full_name,
+        password = user_entity.password,
+
     )
 
-def domain_to_entity(user_entity: UserDomain, password: str) -> UserEntity:
+def domain_to_entity(user_domain: UserDomain, password: str) -> UserEntity:
     """
     (도메인 객체 → ORM 엔티티 변환)
     Doamin 객체를 ORM Entity로 변환합니다.
@@ -24,8 +27,8 @@ def domain_to_entity(user_entity: UserDomain, password: str) -> UserEntity:
     추가 파라미터로 해시된 비밀번호(password)를 받아서 적용합니다.
     """
     return UserEntity(
-        username=user_entity.username,
-        email=user_entity.email,
-        full_name=user_entity.full_name,
+        username=user_domain.username,
+        email=user_domain.email,
+        full_name=user_domain.full_name,
         password=password
     )

@@ -1,4 +1,3 @@
-# src/core/logging_config.py
 import logging
 import logging.config
 from src.core.settings import settings

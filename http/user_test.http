@@ -14,14 +14,14 @@ POST http://localhost:8000/v1/users
 Content-Type: application/json
 
 {
-  "username": "1n3ewuser",
-  "email": "1new3ser@example.com",
+  "username": "ttt55hh",
+  "email": "1115hh@example.com",
   "full_name": "1New User",
   "password": "securepassword"
 }
 
 ### 사용자 비밀번호 변경
-PATCH http://localhost:8000/v1/users/36/password
+PATCH http://localhost:8000/v1/users/39/password
 Content-Type: application/json
 
 {
@@ -29,5 +29,5 @@ Content-Type: application/json
 }
 
 ### 사용자 삭제
-DELETE http://localhost:8000/v1/users/36
+DELETE http://localhost:8000/v1/users/43
 Content-Type: application/json

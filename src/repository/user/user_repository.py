@@ -2,6 +2,8 @@ from typing import Optional, List
 from sqlalchemy.orm import Session
 from src.entity.user_entity import UserEntity
 from src.repository.base_repository import BaseRepository
+from src.mapper.user_mapper import entity_to_domain, domain_to_entity
+from src.domain.user_domain import UserDomain
 
 class UserRepository(BaseRepository[UserEntity]):
     """
@@ -23,16 +25,17 @@ class UserRepository(BaseRepository[UserEntity]):
         size: int = 10,
         sort_by: str = None,
         order: str = "asc"
-    ) -> List[UserEntity]:
+    ) -> List[UserDomain]:
         """
         페이징 및 정렬을 적용하여 모든 사용자를 조회하는 메서드.
         :param page: 1-based 페이지 번호
         :param size: 한 페이지에 가져올 데이터 개수
         :param sort_by: 정렬할 컬럼명 (예: "id", "username")
         :param order: 정렬 방식 ("asc" | "desc")
-        :return: 조회된 사용자 목록
+        :return: 조회된 사용자 목록 (UserDomain 객체 리스트)
         """
-        return self.find_all(page=page, size=size, sort_by=sort_by, order=order)
+        user_entities = self.find_all(page=page, size=size, sort_by=sort_by, order=order)
+        return [entity_to_domain(user) for user in user_entities]
 
     def count_users(self) -> int:
         """
@@ -41,29 +44,33 @@ class UserRepository(BaseRepository[UserEntity]):
         """
         return self.count_all()
 
-    def get_user_by_id(self, user_id: int) -> Optional[UserEntity]:
+    def get_user_by_id(self, user_id: int) -> Optional[UserDomain]:
         """
         사용자 ID를 기반으로 단일 사용자 조회.
         :param user_id: 조회할 사용자 ID
-        :return: UserEntity 객체 (없으면 None)
+        :return: UserDomain 객체 (없으면 None)
         """
-        return self.find_by_id(user_id)
+        entity = self.find_by_id(user_id)
+        return entity_to_domain(entity) if entity else None  # ✅ Entity → Domain 변환 후 반환
 
-    def get_user_by_username(self, username: str) -> Optional[UserEntity]:
+    def get_user_by_username(self, username: str) -> Optional[UserDomain]:
         """
         사용자명을 기반으로 사용자 조회. (커스텀 메서드)
         :param username: 조회할 사용자명
-        :return: UserEntity 객체 (없으면 None)
+        :return: UserDomain 객체 (없으면 None)
         """
         return self.db.query(self.entity).filter(self.entity.username == username).first()
 
-    def create_user(self, user_entity: UserEntity) -> UserEntity:
+    def create_user(self, user_domain: UserDomain, hashed_password: str) -> UserDomain:
         """
         새로운 사용자를 생성하는 메서드.
-        :param user_entity: 저장할 UserEntity 객체
-        :return: 저장된 UserEntity 객체
+        :param user_domain: 저장할 UserDomain 객체
+        :param hashed_password: 해싱된 비밀번호
+        :return: 저장된 UserDomain 객체
         """
-        return self.save(user_entity)
+        entity = domain_to_entity(user_domain, hashed_password)  # ✅ Domain → Entity 변환
+        saved_entity = self.save(entity)  # ✅ DB에 저장
+        return entity_to_domain(saved_entity)  # ✅ Entity → Domain 변환 후 반환
 
     def update_password(self, user_id: int, hashed_password: str) -> bool:
         """

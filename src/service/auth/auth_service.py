@@ -3,6 +3,8 @@ from src.utils.security import verify_password  # 평문 vs 해시 비교 함수
 from src.utils.jwt_token_provider import JwtTokenProvider  # 토큰 생성/검증 유틸리티
 from src.exception.auth_exceptions import HTTPUnauthorizedException
 from src.exception.user_exceptions import UserNotFoundException
+from src.domain.user_domain import UserDomain  # Domain 사용
+from typing import Dict
 
 
 class AuthService:
@@ -18,7 +20,7 @@ class AuthService:
         """
         self.user_repository = user_repository
 
-    def login(self, username: str, password: str) -> dict:
+    def login(self, username: str, password: str) -> Dict[str, str]:
         """
         사용자 로그인 처리 및 JWT Access Token / Refresh Token 발급.
         :param username: 사용자명
@@ -27,21 +29,18 @@ class AuthService:
         :raises UserNotFoundException: 사용자가 존재하지 않을 경우
         :raises HTTPUnauthorizedException: 비밀번호가 일치하지 않을 경우
         """
+        user_domain = self.user_repository.get_user_by_username(username)
 
-        # 사용자 조회 및 자격 증명 검증
-        user_model = self.user_repository.get_user_by_username(username)
-
-        if not user_model:
+        if not user_domain:
             raise UserNotFoundException()
-        if not verify_password(password, user_model.password):
+
+        if not user_domain.password or not verify_password(password, user_domain.password):  # ✅ password 검증
             raise HTTPUnauthorizedException(detail="Invalid credentials")
 
-        # 토큰 생성 (Access Token은 짧게, Refresh Token은 길게)
-        access_token = JwtTokenProvider.generate_access_token(username)
-        refresh_token = JwtTokenProvider.generate_refresh_token(username)
+        access_token = JwtTokenProvider.generate_access_token(user_domain.username)
+        refresh_token = JwtTokenProvider.generate_refresh_token(user_domain.username)
 
-        # 생성된 Refresh Token을 DB에 저장 (로그아웃 시 블랙리스트 효과를 위해)
-        self.user_repository.update_refresh_token(user_model.id, refresh_token)
+        self.user_repository.update_refresh_token(user_domain.id, refresh_token)
 
         return {"access_token": access_token, "refresh_token": refresh_token}
 
@@ -60,16 +59,16 @@ class AuthService:
         if not username:
             raise HTTPUnauthorizedException(detail="Invalid refresh token: subject missing")
 
-        user_model = self.user_repository.get_user_by_username(username)
-        if not user_model:
+        user_domain = self.user_repository.get_user_by_username(username)  # ✅ Entity 변환 없이 Domain 반환
+        if not user_domain:
             raise UserNotFoundException()
 
         # 저장된 refresh token과 비교
-        if user_model.current_refresh_token != refresh_token:
+        if user_domain.current_refresh_token != refresh_token:
             raise HTTPUnauthorizedException(detail="Refresh token is invalid or has been logged out")
 
         # 새로운 Access Token 생성
-        new_access_token = JwtTokenProvider.generate_access_token(username)
+        new_access_token = JwtTokenProvider.generate_access_token(user_domain.username)
         return new_access_token
 
     def logout(self, username: str, refresh_token: str):
@@ -82,13 +81,13 @@ class AuthService:
         """
 
         # 로그아웃 시, 사용자 테이블의 refresh token 값을 삭제하여 블랙리스트 효과
-        user_model = self.user_repository.get_user_by_username(username)
+        user_domain = self.user_repository.get_user_by_username(username)  # ✅ Entity 변환 없이 Domain 반환
 
-        if not user_model:
+        if not user_domain:
             raise UserNotFoundException()
 
         # 저장된 refresh token과 비교하여 일치하는 경우에만 삭제
-        if user_model.current_refresh_token != refresh_token:
+        if user_domain.current_refresh_token != refresh_token:
             raise HTTPUnauthorizedException(detail="Refresh token mismatch")
 
-        self.user_repository.update_refresh_token(user_model.id, None)
+        self.user_repository.update_refresh_token(user_domain.id, None)

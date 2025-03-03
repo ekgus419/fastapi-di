@@ -1,17 +1,11 @@
 from typing import Type, TypeVar, Generic, List, Optional, Any, Dict
 from sqlalchemy.orm import Session
 from sqlalchemy import text, desc, asc, inspect
+from sqlalchemy.sql.expression import ColumnElement
+from src.entity.base_entity import Base  # ✅ SQLAlchemy Base 클래스
 
-# 제네릭 타입 변수 T (SQLAlchemy ORM 모델 타입)
-T = TypeVar("T")
-
-
-from typing import Type, TypeVar, Generic, List, Optional, Any, Dict
-from sqlalchemy.orm import Session
-from sqlalchemy import text, desc, asc, inspect
-
-# 제네릭 타입 변수 T (SQLAlchemy ORM 모델 타입)
-T = TypeVar("T")
+# T가 항상 SQLAlchemy의 Base를 상속하는 모델이 되도록 제한
+T = TypeVar("T", bound=Base)
 
 class BaseRepository(Generic[T]):
     """
@@ -22,11 +16,14 @@ class BaseRepository(Generic[T]):
     def __init__(self, db: Session, entity: Type[T]):
         """
         :param db: SQLAlchemy 세션
-        :param entity: ORM 모델 클래스
+        :param entity: ORM 모델 클래스 (Base를 상속해야 함)
         """
         self.db = db
         self.entity = entity
-        self.primary_key = inspect(self.entity).primary_key[0]
+
+        # 기본 키 컬럼을 SQLAlchemy의 ColumnElement 타입으로 변환
+        primary_key_column = inspect(self.entity).primary_key[0]
+        self.primary_key: ColumnElement = getattr(self.entity, primary_key_column.name)
 
     def find_all(
             self,
@@ -58,7 +55,6 @@ class BaseRepository(Generic[T]):
     def find_by_id(self, entity_id: int) -> Optional[T]:
         """
         ID를 기반으로 엔티티를 조회하는 메서드.
-        테이블의 기본 키가 'id'라는 가정 없이 동적으로 기본 키 컬럼을 찾음.
         :param entity_id: 조회할 엔티티의 ID
         :return: 해당 ID의 엔티티 (없으면 None)
         """

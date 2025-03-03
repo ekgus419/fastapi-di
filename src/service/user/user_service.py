@@ -1,5 +1,4 @@
 from typing import Tuple, List
-
 from pydantic import EmailStr
 
 from src.exception.user_exceptions import UserNotFoundException, UserAlreadyExistsException
@@ -38,22 +37,21 @@ class UserService:
         :param order: 정렬 방식 ("asc" | "desc")
         :return: (조회된 사용자 리스트, 전체 사용자 수)
         """
-        user_entity = self.user_repository.get_all_users(page, size, sort_by, order)
+        user_domains = self.user_repository.get_all_users(page, size, sort_by, order)
         total_count = self.user_repository.count_users()
-        user_domain = [entity_to_domain(m) for m in user_entity]
-        return user_domain, total_count
+        return user_domains, total_count
 
     def get_user_by_id(self, user_id: int) -> UserDomain:
         """
         특정 사용자 ID를 기반으로 사용자 정보를 조회하는 메서드.
         :param user_id: 조회할 사용자 ID
-        :return: UserEntity 객체
+        :return: UserDomain 객체
         :raises UserNotFoundException: 사용자가 존재하지 않는 경우 예외 발생
         """
-        model = self.user_repository.get_user_by_id(user_id)
-        if model is None:
+        user_domain = self.user_repository.get_user_by_id(user_id)
+        if user_domain is None:
             raise UserNotFoundException()
-        return entity_to_domain(model)
+        return user_domain
 
     def create_user(self, username: str, email: EmailStr, full_name: str | None, password: str) -> UserDomain:
         """
@@ -62,7 +60,7 @@ class UserService:
         :param email: 이메일 주소
         :param full_name: 전체 이름 (선택 사항)
         :param password: 비밀번호 (평문)
-        :return: 생성된 사용자 정보 (UserEntity)
+        :return: 생성된 사용자 정보 (UserDomain)
         :raises UserAlreadyExistsException: 동일한 username이 이미 존재하는 경우 예외 발생
         """
 
@@ -71,22 +69,18 @@ class UserService:
         if existing_user:
             raise UserAlreadyExistsException()
 
-        hashed = hash_password(password)
+        hashed_password = hash_password(password)
 
-        # 도메인 생성
         user_domain = UserDomain(
-            id=0,  # ID는 DB에서 자동 할당
+            id=0,
             username=username,
             email=email,
+            current_refresh_token=None,
             full_name=full_name
         )
 
-        # 도메인 객체를 ORM Entity 로 변환
-        new_entity = domain_to_entity(user_domain, hashed)
-        created_entity = self.user_repository.create_user(new_entity)
-
-        # Entity 를 도메인 객체로 변환하여 반환
-        return entity_to_domain(created_entity)
+        # ✅ Repository에서 저장 후 Domain 반환
+        return self.user_repository.create_user(user_domain, hashed_password)
 
     def update_password(self, user_id: int, new_password: str) -> bool:
         """
@@ -96,8 +90,8 @@ class UserService:
         :return: 비밀번호 변경 성공 여부 (True/False)
         :raises UserNotFoundException: 해당 사용자가 존재하지 않는 경우 예외 발생
         """
-        hashed = hash_password(new_password)
-        result = self.user_repository.update_password(user_id, hashed)
+        hashed_password = hash_password(new_password)
+        result = self.user_repository.update_password(user_id, hashed_password)
         if not result:
             raise UserNotFoundException()
         return True
