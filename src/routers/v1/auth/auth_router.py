@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, status
 from dependency_injector.wiring import inject, Provide
 
-from src.dto.request.auth.login_request import LoginRequest
-from src.dto.request.auth.logout_request import LogoutRequest
-from src.dto.request.auth.refresh_token_request import RefreshTokenRequest
-from src.dto.response.auth.token_response import TokenResponse
-from src.dto.response.common_response import CommonResponse
+from src.dto.request.auth.login_request_dto import LoginRequestDto
+from src.dto.request.auth.logout_request_dto import LogoutRequestDto
+from src.dto.request.auth.refresh_token_request_dto import RefreshTokenRequestDto
+from src.dto.response.auth.token_response_dto import TokenResponseDto
+from src.dto.response.common_response_dto import CommonResponseDto
 from src.service.auth.auth_service import AuthService
 from src.core.container import Container
 
@@ -13,10 +13,10 @@ from src.core.container import Container
 router = APIRouter(prefix="/auth")
 
 
-@router.post("/login", response_model=CommonResponse[TokenResponse], status_code=status.HTTP_200_OK)
+@router.post("/login", response_model=CommonResponseDto[TokenResponseDto], status_code=status.HTTP_200_OK)
 @inject
 def login(
-    payload: LoginRequest,
+    payload: LoginRequestDto,
     auth_service: AuthService = Depends(Provide[Container.auth_service])
 ):
     """
@@ -28,17 +28,17 @@ def login(
     :return: CommonResponse[TokenResponse] (Access Token 및 Refresh Token 반환)
     """
     tokens = auth_service.login(payload.username, payload.password)
-    return CommonResponse(
+    return CommonResponseDto(
         status="success",
-        data=TokenResponse(access_token=tokens["access_token"], refresh_token=tokens["refresh_token"]),
+        data=TokenResponseDto(access_token=tokens["access_token"], refresh_token=tokens["refresh_token"]),
         message=None
     )
 
 
-@router.post("/refresh", response_model=CommonResponse[TokenResponse], status_code=status.HTTP_200_OK)
+@router.post("/refresh", response_model=CommonResponseDto[TokenResponseDto], status_code=status.HTTP_200_OK)
 @inject
 def refresh_token(
-    payload: RefreshTokenRequest,
+    payload: RefreshTokenRequestDto,
     auth_service: AuthService = Depends(Provide[Container.auth_service])
 ):
     """
@@ -52,17 +52,17 @@ def refresh_token(
     new_access_token = auth_service.refresh_access_token(payload.refresh_token)
     tokens = {"access_token": new_access_token, "refresh_token": payload.refresh_token}
 
-    return CommonResponse(
+    return CommonResponseDto(
         status="success",
-        data=TokenResponse(access_token=tokens["access_token"], refresh_token=tokens["refresh_token"]),
+        data=TokenResponseDto(access_token=tokens["access_token"], refresh_token=tokens["refresh_token"]),
         message="Token refreshed successfully"
     )
 
 
-@router.post("/logout", response_model=CommonResponse[None], status_code=status.HTTP_200_OK)
+@router.post("/logout", response_model=CommonResponseDto[None], status_code=status.HTTP_200_OK)
 @inject
 def logout(
-    payload: LogoutRequest,
+    payload: LogoutRequestDto,
     auth_service: AuthService = Depends(Provide[Container.auth_service])
 ):
     """
@@ -76,7 +76,7 @@ def logout(
     # 로그아웃 시, 클라이언트는 username과 refresh token을 전달해야 함
     auth_service.logout(payload.username, payload.refresh_token)
 
-    return CommonResponse(
+    return CommonResponseDto(
         status="success",
         data=None,
         message="Logged out successfully"

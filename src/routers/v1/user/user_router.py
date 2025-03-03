@@ -2,12 +2,12 @@ from fastapi import APIRouter, HTTPException, Depends, Query, status
 from dependency_injector.wiring import inject, Provide
 
 from src.core.container import Container
-from src.dto.response.paginated_response import PaginatedResponse
+from src.dto.response.paginated_response_dto import PaginatedResponseDto
 from src.service.user.user_service import UserService
-from src.dto.request.user.user_create_request import UserCreateRequest
-from src.dto.request.user.password_update_request import PasswordUpdateRequest
-from src.dto.response.user.user_response import UserResponse
-from src.dto.response.common_response import CommonResponse
+from src.dto.request.user.user_create_request_dto import UserCreateRequestDto
+from src.dto.request.user.password_update_request_dto import PasswordUpdateRequestDto
+from src.dto.response.user.user_response_dto import UserResponseDto
+from src.dto.response.common_response_dto import CommonResponseDto
 
 # 사용자 관리 관련 API 엔드포인트를 정의하는 APIRouter
 router = APIRouter(
@@ -36,14 +36,14 @@ def get_users_paged(
     entities, total_items = user_service.get_users_with_paging(page, size, sort_by, order)
 
     # UserEntity -> UserResponse 변환
-    user_responses = [UserResponse.model_validate(e) for e in entities]
+    user_responses = [UserResponseDto.model_validate(e) for e in entities]
 
     # 전체 페이지 수 계산
     total_pages = (total_items + size - 1)
 
-    return CommonResponse(
+    return CommonResponseDto(
         status="success",
-        data=PaginatedResponse(
+        data=PaginatedResponseDto(
             items=user_responses,
             total=total_items,
             page=page,
@@ -53,7 +53,7 @@ def get_users_paged(
         message=None
     )
 
-@router.get("/{user_id}", response_model=CommonResponse[UserResponse])
+@router.get("/{user_id}", response_model=CommonResponseDto[UserResponseDto])
 @inject
 def get_user(
     user_id: int,
@@ -70,12 +70,12 @@ def get_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    return CommonResponse(status="success", data=user, message=None)
+    return CommonResponseDto(status="success", data=user, message=None)
 
-@router.post("/", response_model=CommonResponse[UserResponse], status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=CommonResponseDto[UserResponseDto], status_code=status.HTTP_201_CREATED)
 @inject
 def create_user(
-    request: UserCreateRequest,
+    request: UserCreateRequestDto,
     user_service: UserService = Depends(Provide[Container.user_service])
 ):
     """
@@ -90,13 +90,13 @@ def create_user(
         full_name=request.full_name,
         password=request.password
     )
-    return CommonResponse(status="success", data=user, message=None)
+    return CommonResponseDto(status="success", data=user, message=None)
 
-@router.patch("/{user_id}/password", response_model=CommonResponse[None], status_code=status.HTTP_200_OK)
+@router.patch("/{user_id}/password", response_model=CommonResponseDto[None], status_code=status.HTTP_200_OK)
 @inject
 def update_password(
     user_id: int,
-    request: PasswordUpdateRequest,
+    request: PasswordUpdateRequestDto,
     user_service: UserService = Depends(Provide[Container.user_service])
 ):
     """
@@ -107,9 +107,9 @@ def update_password(
     :return: CommonResponse[None] (비밀번호 변경 성공 메시지)
     """
     user_service.update_password(user_id, request.password)
-    return CommonResponse(status="success", data=None, message="Password updated successfully")
+    return CommonResponseDto(status="success", data=None, message="Password updated successfully")
 
-@router.delete("/{user_id}", response_model=CommonResponse[None], status_code=status.HTTP_200_OK)
+@router.delete("/{user_id}", response_model=CommonResponseDto[None], status_code=status.HTTP_200_OK)
 @inject
 def delete_user(
     user_id: int,
@@ -122,4 +122,4 @@ def delete_user(
     :return: CommonResponse[None] (삭제 성공 메시지)
     """
     user_service.delete_user(user_id)
-    return CommonResponse(status="success", data=None, message="User deleted successfully")
+    return CommonResponseDto(status="success", data=None, message="User deleted successfully")

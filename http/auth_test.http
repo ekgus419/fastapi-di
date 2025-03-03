@@ -12,7 +12,7 @@ POST http://localhost:8000/v1/auth/refresh
 Content-Type: application/json
 
 {
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0IiwiZXhwIjoxNzQwOTg2NTUwLCJzY29wZSI6InJlZnJlc2gifQ.w5GJtmucGCrWjKxzFTOXexPU9y0O9fFt_VOUvkizks8"
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0IiwiZXhwIjoxNzQxMDcyNDk3LCJzY29wZSI6InJlZnJlc2gifQ.eEZLC1PFOgaD453wwGuPoXsbMMLWfarVrvYRAJeFXIw"
 }
 
 ### 로그아웃 요청 (Logout)
@@ -21,5 +21,5 @@ Content-Type: application/json
 
 {
   "username": "test",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0IiwiZXhwIjoxNzQwOTg2NTUwLCJzY29wZSI6InJlZnJlc2gifQ.w5GJtmucGCrWjKxzFTOXexPU9y0O9fFt_VOUvkizks8"
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0IiwiZXhwIjoxNzQxMDcyNDk3LCJzY29wZSI6InJlZnJlc2gifQ.eEZLC1PFOgaD453wwGuPoXsbMMLWfarVrvYRAJeFXIw"
 }

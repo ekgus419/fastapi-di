@@ -5,7 +5,7 @@ from src.utils.jwt_token_provider import JwtTokenProvider
 """
 FastAPI의 dependency를 사용하여 요청마다 JWT를 검증
 """
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")  # 로그인 엔드포인트 지정
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/v1/auth/login")  # 로그인 엔드포인트 지정
 
 def get_current_username(token: str = Depends(oauth2_scheme)) -> str:
     """

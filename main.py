@@ -1,36 +1,32 @@
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError, HTTPException
-from src.core.exception_handlers import validation_exception_handler, http_exception_handler, \
-    general_exception_handler
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
+
+from src.core.exception_handlers import register_exception_handlers
 from src.routers.v1.user.user_router import router as user_router
 from src.routers.v1.auth.auth_router import router as auth_router
 from src.core.container import container
 from dependency_injector import providers
 from src.config.logging_config import configure_logging
 
-app = FastAPI()
-
-# 전역 예외 핸들러 등록
-app.add_exception_handler(HTTPException, http_exception_handler)
-app.add_exception_handler(RequestValidationError, validation_exception_handler)
-app.add_exception_handler(Exception, general_exception_handler)
-
-# 로깅 설정 적용 (설정 파일에 따라 SQL 쿼리 예쁘게 출력)
-configure_logging()
-
-# 테이블 자동 생성 (실무에서는 Alembic 등의 마이그레이션 도구 사용 권장)
-# Base.metadata.create_all(bind=engine)
-
-# 애플리케이션 시작 시 리소스 초기화 및 wiring 적용
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
+    """
+    애플리케이션 시작 및 종료 시 실행할 리소스 초기화 및 정리.
+    """
     container.init_resources()
     container.wire(packages=["src.routers"])
-
-# 애플리케이션 종료 시 리소스 정리
-@app.on_event("shutdown")
-async def shutdown_event():
+    yield  # FastAPI 앱 실행 (요청을 처리하는 동안 대기)
     container.shutdown_resources()
+
+app = FastAPI(lifespan=lifespan)
+
+# 예외 핸들러 등록
+register_exception_handlers(app)
+
+# 로깅 설정 적용
+configure_logging()
 
 # 미들웨어: 각 요청마다 새로운 DB 세션 생성 및 container의 db_session 공급자 override
 @app.middleware("http")

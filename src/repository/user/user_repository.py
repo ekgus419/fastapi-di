@@ -1,9 +1,9 @@
 from typing import Optional, List
 from sqlalchemy.orm import Session
-from src.model.user_model import UserModel
+from src.entity.user_entity import UserEntity
 from src.repository.base_repository import BaseRepository
 
-class UserRepository(BaseRepository[UserModel]):
+class UserRepository(BaseRepository[UserEntity]):
     """
     사용자(User) 엔티티의 데이터 접근을 담당하는 리포지토리 클래스.
     공통적인 CRUD 기능은 BaseRepository에서 상속받고,
@@ -15,7 +15,7 @@ class UserRepository(BaseRepository[UserModel]):
         UserRepository의 생성자.
         :param db: SQLAlchemy 세션 객체
         """
-        super().__init__(db, UserModel)
+        super().__init__(db, UserEntity)
 
     def get_all_users(
         self,
@@ -23,7 +23,7 @@ class UserRepository(BaseRepository[UserModel]):
         size: int = 10,
         sort_by: str = None,
         order: str = "asc"
-    ) -> List[UserModel]:
+    ) -> List[UserEntity]:
         """
         페이징 및 정렬을 적용하여 모든 사용자를 조회하는 메서드.
         :param page: 1-based 페이지 번호
@@ -41,29 +41,29 @@ class UserRepository(BaseRepository[UserModel]):
         """
         return self.count_all()
 
-    def get_user_by_id(self, user_id: int) -> Optional[UserModel]:
+    def get_user_by_id(self, user_id: int) -> Optional[UserEntity]:
         """
         사용자 ID를 기반으로 단일 사용자 조회.
         :param user_id: 조회할 사용자 ID
-        :return: UserModel 객체 (없으면 None)
+        :return: UserEntity 객체 (없으면 None)
         """
         return self.find_by_id(user_id)
 
-    def get_user_by_username(self, username: str) -> Optional[UserModel]:
+    def get_user_by_username(self, username: str) -> Optional[UserEntity]:
         """
         사용자명을 기반으로 사용자 조회. (커스텀 메서드)
         :param username: 조회할 사용자명
-        :return: UserModel 객체 (없으면 None)
+        :return: UserEntity 객체 (없으면 None)
         """
-        return self.db.query(self.model).filter(self.model.username == username).first()
+        return self.db.query(self.entity).filter(self.entity.username == username).first()
 
-    def create_user(self, user_model: UserModel) -> UserModel:
+    def create_user(self, user_entity: UserEntity) -> UserEntity:
         """
         새로운 사용자를 생성하는 메서드.
-        :param user_model: 저장할 UserModel 객체
-        :return: 저장된 UserModel 객체
+        :param user_entity: 저장할 UserEntity 객체
+        :return: 저장된 UserEntity 객체
         """
-        return self.save(user_model)
+        return self.save(user_entity)
 
     def update_password(self, user_id: int, hashed_password: str) -> bool:
         """

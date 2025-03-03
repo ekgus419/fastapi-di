@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 
-class UserCreateRequest(BaseModel):
+class UserCreateRequestDto(BaseModel):
     username: str = Field(..., max_length=50)
     email: EmailStr
     full_name: str | None = None

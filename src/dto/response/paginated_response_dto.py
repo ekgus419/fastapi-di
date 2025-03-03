@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 T = TypeVar("T")
 
-class PaginatedResponse(BaseModel, Generic[T]):
+class PaginatedResponseDto(BaseModel, Generic[T]):
     items: List[T]
     total: int              # 전체 아이템 수
     page: int               # 현재 페이지 (1-based)

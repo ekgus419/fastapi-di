@@ -4,9 +4,9 @@ from pydantic import EmailStr
 
 from src.exception.user_exceptions import UserNotFoundException, UserAlreadyExistsException
 from src.repository.user.user_repository import UserRepository
-from src.mapper.user_mapper import model_to_entity, entity_to_model
+from src.mapper.user_mapper import entity_to_domain, domain_to_entity
 from src.utils.security import hash_password
-from src.entity.user_entity import UserEntity
+from src.domain.user_domain import UserDomain
 
 
 class UserService:
@@ -29,7 +29,7 @@ class UserService:
         size: int,
         sort_by: str | None,
         order: str
-    ) -> Tuple[List[UserEntity], int]:
+    ) -> Tuple[List[UserDomain], int]:
         """
         페이징 및 정렬을 적용하여 사용자 목록을 조회하는 메서드.
         :param page: 1-based 페이지 번호
@@ -38,12 +38,12 @@ class UserService:
         :param order: 정렬 방식 ("asc" | "desc")
         :return: (조회된 사용자 리스트, 전체 사용자 수)
         """
-        models = self.user_repository.get_all_users(page, size, sort_by, order)
+        user_entity = self.user_repository.get_all_users(page, size, sort_by, order)
         total_count = self.user_repository.count_users()
-        entities = [model_to_entity(m) for m in models]
-        return entities, total_count
+        user_domain = [entity_to_domain(m) for m in user_entity]
+        return user_domain, total_count
 
-    def get_user_by_id(self, user_id: int) -> UserEntity:
+    def get_user_by_id(self, user_id: int) -> UserDomain:
         """
         특정 사용자 ID를 기반으로 사용자 정보를 조회하는 메서드.
         :param user_id: 조회할 사용자 ID
@@ -53,9 +53,9 @@ class UserService:
         model = self.user_repository.get_user_by_id(user_id)
         if model is None:
             raise UserNotFoundException()
-        return model_to_entity(model)
+        return entity_to_domain(model)
 
-    def create_user(self, username: str, email: EmailStr, full_name: str | None, password: str) -> UserEntity:
+    def create_user(self, username: str, email: EmailStr, full_name: str | None, password: str) -> UserDomain:
         """
         새로운 사용자를 생성하는 메서드.
         :param username: 사용자명
@@ -73,18 +73,20 @@ class UserService:
 
         hashed = hash_password(password)
 
-        # 도메인 엔티티 생성
-        user_entity = UserEntity(
+        # 도메인 생성
+        user_domain = UserDomain(
             id=0,  # ID는 DB에서 자동 할당
             username=username,
             email=email,
             full_name=full_name
         )
 
-        # 도메인 엔티티를 ORM 모델로 변환
-        new_model = entity_to_model(user_entity, hashed)
-        created_model = self.user_repository.create_user(new_model)
-        return model_to_entity(created_model)
+        # 도메인 객체를 ORM Entity 로 변환
+        new_entity = domain_to_entity(user_domain, hashed)
+        created_entity = self.user_repository.create_user(new_entity)
+
+        # Entity 를 도메인 객체로 변환하여 반환
+        return entity_to_domain(created_entity)
 
     def update_password(self, user_id: int, new_password: str) -> bool:
         """

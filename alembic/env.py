@@ -12,7 +12,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # 반드시 모든 모델을 import해서 Base.metadata에 반영되도록 합니다.
-from src.model.base_model import Base  # 공통 Base import
+from src.entity.base_entity import Base  # 공통 Base import
 
 # target_metadata에 공통 Base의 metadata를 지정합니다.
 target_metadata = Base.metadata

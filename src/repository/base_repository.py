@@ -1,10 +1,17 @@
 from typing import Type, TypeVar, Generic, List, Optional, Any, Dict
 from sqlalchemy.orm import Session
-from sqlalchemy import text, desc, asc
+from sqlalchemy import text, desc, asc, inspect
 
 # 제네릭 타입 변수 T (SQLAlchemy ORM 모델 타입)
 T = TypeVar("T")
 
+
+from typing import Type, TypeVar, Generic, List, Optional, Any, Dict
+from sqlalchemy.orm import Session
+from sqlalchemy import text, desc, asc, inspect
+
+# 제네릭 타입 변수 T (SQLAlchemy ORM 모델 타입)
+T = TypeVar("T")
 
 class BaseRepository(Generic[T]):
     """
@@ -12,13 +19,14 @@ class BaseRepository(Generic[T]):
     모든 엔티티 리포지토리는 이 클래스를 상속받아 공통 기능을 재사용함.
     """
 
-    def __init__(self, db: Session, model: Type[T]):
+    def __init__(self, db: Session, entity: Type[T]):
         """
         :param db: SQLAlchemy 세션
-        :param model: ORM 모델 클래스
+        :param entity: ORM 모델 클래스
         """
         self.db = db
-        self.model = model
+        self.entity = entity
+        self.primary_key = inspect(self.entity).primary_key[0]
 
     def find_all(
             self,
@@ -35,11 +43,11 @@ class BaseRepository(Generic[T]):
         :param order: "asc" (오름차순) 또는 "desc" (내림차순)
         :return: 조회된 엔티티 목록
         """
-        query = self.db.query(self.model)
+        query = self.db.query(self.entity)
 
         # 정렬 적용
         if sort_by:
-            sort_attr = getattr(self.model, sort_by, None)
+            sort_attr = getattr(self.entity, sort_by, None)
             if sort_attr is not None:
                 query = query.order_by(desc(sort_attr)) if order.lower() == "desc" else query.order_by(asc(sort_attr))
 
@@ -47,20 +55,21 @@ class BaseRepository(Generic[T]):
         skip = (page - 1) * size
         return query.offset(skip).limit(size).all()
 
-    def find_by_id(self, id: int) -> Optional[T]:
+    def find_by_id(self, entity_id: int) -> Optional[T]:
         """
         ID를 기반으로 엔티티를 조회하는 메서드.
-        :param id: 조회할 엔티티의 ID
+        테이블의 기본 키가 'id'라는 가정 없이 동적으로 기본 키 컬럼을 찾음.
+        :param entity_id: 조회할 엔티티의 ID
         :return: 해당 ID의 엔티티 (없으면 None)
         """
-        return self.db.query(self.model).filter(self.model.id == id).first()
+        return self.db.query(self.entity).filter(self.primary_key == entity_id).first()
 
     def count_all(self) -> int:
         """
         전체 엔티티 개수를 반환하는 메서드.
         :return: 엔티티 개수
         """
-        return self.db.query(self.model).count()
+        return self.db.query(self.entity).count()
 
     def save(self, entity: T) -> T:
         """
@@ -73,14 +82,14 @@ class BaseRepository(Generic[T]):
         self.db.refresh(entity)
         return entity
 
-    def update(self, id: int, **kwargs) -> Optional[T]:
+    def update(self, entity_id: int, **kwargs) -> Optional[T]:
         """
         특정 ID의 엔티티를 업데이트하는 메서드.
-        :param id: 업데이트할 엔티티의 ID
+        :param entity_id: 업데이트할 엔티티의 ID
         :param kwargs: 변경할 필드 값들
         :return: 업데이트된 엔티티 (없으면 None)
         """
-        entity = self.find_by_id(id)
+        entity = self.db.query(self.entity).filter(self.primary_key == entity_id).first()
         if not entity:
             return None
         for key, value in kwargs.items():
@@ -90,33 +99,33 @@ class BaseRepository(Generic[T]):
         self.db.refresh(entity)
         return entity
 
-    def delete_by_id(self, id: int) -> bool:
+    def delete_by_id(self, entity_id: int) -> bool:
         """
         특정 ID의 엔티티를 삭제하는 메서드.
-        :param id: 삭제할 엔티티의 ID
+        :param entity_id: 삭제할 엔티티의 ID
         :return: 삭제 성공 여부
         """
-        entity = self.find_by_id(id)
+        entity = self.db.query(self.entity).filter(self.primary_key == entity_id).first()
         if not entity:
             return False
         self.db.delete(entity)
         self.db.commit()
         return True
 
-    def exists_by_id(self, id: int) -> bool:
+    def exists_by_id(self, entity_id: int) -> bool:
         """
         특정 ID의 엔티티 존재 여부를 확인하는 메서드.
-        :param id: 확인할 ID
+        :param entity_id: 확인할 ID
         :return: 존재 여부 (True/False)
         """
-        return self.find_by_id(id) is not None
+        return self.db.query(self.entity).filter(self.primary_key == entity_id).first() is not None
 
-    def find_by_native_query(self, sql: str, params: Optional[Dict[str, Any]] = None) -> List[Any]:
+    def find_by_native_query(self, sql: str, params: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """
         네이티브 SQL 쿼리를 실행하는 메서드.
         :param sql: 실행할 SQL 문자열
         :param params: 바인딩할 파라미터
-        :return: 쿼리 결과 리스트
+        :return: 쿼리 결과 리스트 (딕셔너리 형태)
         """
-        result = self.db.execute(text(sql), params or {})
-        return result.fetchall()
+        result = self.db.execute(text(sql), params or {}).mappings().all()
+        return [dict(row) for row in result]
