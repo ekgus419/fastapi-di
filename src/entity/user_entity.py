@@ -12,3 +12,8 @@ class UserEntity(Base):
     password = Column(String(128), nullable=False)
     # Refresh Token 저장 컬럼: 로그아웃 시 값을 지워서 해당 토큰을 무효화
     current_refresh_token = Column(String(512), nullable=True)
+    type = Column(String(3), default='100', nullable=False, comment='회원 유형 (예: 100: employee, 200: agency)')
+    status = Column(String(3), default='100', nullable=False, comment='회원 상태 (예: 100: active, 200: inactive)')
+    created_at = Column(DateTime, default=datetime.now(timezone.utc), comment='회원 등록일')
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc),comment='회원 수정일')
+    deleted_at = Column(DateTime, nullable=True, comment='회원 삭제일 (삭제되지 않은 경우 NULL)')
