@@ -1,6 +1,7 @@
-from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, DateTime
 from src.entity.base_entity import Base
+from src.utils.time_provider import get_kst_time
+
 
 class UserEntity(Base):
     __tablename__ = "users"
@@ -14,6 +15,6 @@ class UserEntity(Base):
     current_refresh_token = Column(String(512), nullable=True)
     type = Column(String(3), default='100', nullable=False, comment='회원 유형 (예: 100: employee, 200: agency)')
     status = Column(String(3), default='100', nullable=False, comment='회원 상태 (예: 100: active, 200: inactive)')
-    created_at = Column(DateTime, default=datetime.now(timezone.utc), comment='회원 등록일')
-    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc),comment='회원 수정일')
+    created_at = Column(DateTime, default=get_kst_time(), comment='회원 등록일')
+    updated_at = Column(DateTime, default=get_kst_time(), onupdate=get_kst_time(),comment='회원 수정일')
     deleted_at = Column(DateTime, nullable=True, comment='회원 삭제일 (삭제되지 않은 경우 NULL)')
