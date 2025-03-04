@@ -51,7 +51,8 @@ class UserRepository(BaseRepository[UserEntity]):
         :return: UserDomain 객체 (없으면 None)
         """
         entity = self.find_by_id(user_id)
-        return entity_to_domain(entity) if entity else None  # ✅ Entity → Domain 변환 후 반환
+        # Entity → Domain 변환 후 반환
+        return entity_to_domain(entity) if entity else None  
 
     def get_user_by_username(self, username: str) -> Optional[UserDomain]:
         """
@@ -68,9 +69,12 @@ class UserRepository(BaseRepository[UserEntity]):
         :param hashed_password: 해싱된 비밀번호
         :return: 저장된 UserDomain 객체
         """
-        entity = domain_to_entity(user_domain, hashed_password)  # ✅ Domain → Entity 변환
-        saved_entity = self.save(entity)  # ✅ DB에 저장
-        return entity_to_domain(saved_entity)  # ✅ Entity → Domain 변환 후 반환
+        # Domain → Entity 변환
+        entity = domain_to_entity(user_domain, hashed_password)  
+        # DB에 저장
+        saved_entity = self.save(entity)
+        # Entity → Domain 변환 후 반환
+        return entity_to_domain(saved_entity)
 
     def update_password(self, user_id: int, hashed_password: str) -> bool:
         """
