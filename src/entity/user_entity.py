@@ -1,6 +1,6 @@
-from sqlalchemy import Column, Integer, String
+from datetime import datetime, timezone
+from sqlalchemy import Column, Integer, String, DateTime
 from src.entity.base_entity import Base
-
 
 class UserEntity(Base):
     __tablename__ = "users"
