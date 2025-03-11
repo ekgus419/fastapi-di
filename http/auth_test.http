@@ -1,0 +1,25 @@
+### 로그인 요청 (Login)
+POST http://localhost:8000/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "test",
+  "password": "111111"
+}
+
+### 토큰 갱신 요청 (Refresh Token)
+POST http://localhost:8000/v1/auth/refresh
+Content-Type: application/json
+
+{
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0IiwiZXhwIjoxNzQxMDc5NDM3LCJzY29wZSI6InJlZnJlc2gifQ.lj-pQsulAhjGEYwQ9-OuTlyqJ7VwlQAsZ1oRAdP4OBU"
+}
+
+### 로그아웃 요청 (Logout)
+POST http://localhost:8000/v1/auth/logout
+Content-Type: application/json
+
+{
+  "username": "test",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0IiwiZXhwIjoxNzQxMDc5NDM3LCJzY29wZSI6InJlZnJlc2gifQ.lj-pQsulAhjGEYwQ9-OuTlyqJ7VwlQAsZ1oRAdP4OBU"
+}

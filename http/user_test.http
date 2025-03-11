@@ -1,0 +1,32 @@
+#Authorization: Bearer your-access-token-here
+
+### 모든 사용자 목록 (페이징 포함)
+#GET http://localhost:8000/v1/users/users/paged?page=1&size=5&order=asc
+GET http://localhost:8000/v1/users/users/paged?page=1&size=10&sort_by=id&order=desc
+Content-Type: application/json
+
+### 특정 사용자 조회
+GET http://localhost:8000/v1/users/15
+Content-Type: application/json
+
+### 사용자 생성
+POST http://localhost:8000/v1/users
+Content-Type: application/json
+
+{
+  "username": "fff",
+  "email": "fff@example.com",
+  "password": "securepassword"
+}
+
+### 사용자 비밀번호 변경
+PATCH http://localhost:8000/v1/users/39/password
+Content-Type: application/json
+
+{
+  "password": "111111"
+}
+
+### 사용자 삭제
+DELETE http://localhost:8000/v1/users/45
+Content-Type: application/json
